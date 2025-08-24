@@ -1,0 +1,17 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Mock Dashboard</title>
+<style>body{font-family:system-ui;margin:0} .bar{height:56px;background:#111;color:#fff;display:flex;align-items:center;padding:0 16px} .wrap{padding:16px}</style>
+</head>
+<body>
+  <div class="bar">Mock QuickSight Dashboard</div>
+  <div class="wrap">
+    <h3>Uploads</h3>
+    <p>Total uploaded files: <strong id="uploads">0</strong></p>
+  </div>
+  <script>
+    const key = 'uploads_count';
+    function update(){ document.getElementById('uploads').textContent = localStorage.getItem(key) || '0'; }
+    window.addEventListener('storage', update);
+    update();
+  </script>
+</body></html>

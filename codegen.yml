@@ -1,0 +1,16 @@
+schema: ./schema.mock.graphql
+documents:
+  - src/graphql/operations.ts         # 👈 only this
+generates:
+  src/graphql/__generated__/types.ts:
+    plugins:
+      - typescript
+      - typescript-operations
+      - typescript-react-apollo
+    config:
+      withHooks: true
+      reactApolloVersion: 3
+      avoidOptionals: true
+      maybeValue: T | null
+# Optional safety: don’t fail if no docs found
+# ignoreNoDocuments: true

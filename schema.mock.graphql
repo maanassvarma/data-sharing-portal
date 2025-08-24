@@ -1,0 +1,38 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Query {
+  datasets: [Dataset!]!
+  things: [Thing!]!
+}
+
+type Mutation {
+  createDataset(name: String!): Dataset!
+  requestAccess(datasetId: ID!): AccessRequest!
+  createThing(name: String!): Thing!
+}
+
+type Dataset {
+  id: ID!
+  name: String!
+  owner: String!
+  visibility: Visibility!
+  created_at: String!
+}
+
+enum Visibility { private shared public }
+
+type AccessRequest {
+  id: ID!
+  status: String!
+  requested_at: String!
+}
+
+type Thing {
+  id: ID!
+  name: String!
+  status: String!
+  created_at: String!
+}
