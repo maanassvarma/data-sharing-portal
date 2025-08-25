@@ -1,187 +1,224 @@
-# Modern Admin Dashboard
+# Data Sharing Portal (React + QuickSight + S3 + GraphQL)
 
-A comprehensive React admin dashboard built with Vite, TypeScript, Tailwind CSS, and shadcn/ui. Features three main tabs with different functionalities and comprehensive testing.
+Role-aware (Admin / Collaborator) portal that embeds **AWS QuickSight** dashboards, handles **S3 presigned** uploads & share links, and uses **Apollo GraphQL** to simulate a Postgres-backed API. Designed so mocks can be **drop-in replaced** with real endpoints.
 
-## Features
+> Independent demo for a “data-sharing portal” role. Not affiliated with any organization. Mocks are used for local development.
 
-### 🎯 Dashboard Tab
-- QuickSight iframe integration
-- Fetches embed URL from `/quicksight/embed-url` endpoint
-- Loading, error, and success states
-- Refresh functionality
+---
 
-### 📁 Upload Data Tab
-- File picker with drag-and-drop support
-- S3 presigned URL integration via `/s3/presign` endpoint
-- Mock file upload with progress tracking
-- File validation and error handling
+## ✨ Highlights 
 
-### ⚙️ Admin Data Tab
-- Apollo Client with mocked GraphQL schema
-- ListThings query with id, name, status, created_at fields
-- CreateThing mutation for adding new items
-- Real-time data updates
+- **QuickSight dashboards**  
+  Uses the official embedding SDK when given a real embed URL; falls back to an iframe for local mocks. Refresh & parameter hooks included.
 
-## Tech Stack
+- **S3 data storage**  
+  Upload CSVs via **presigned PUT** with progress, then surface a mock **presigned GET** link for collaborators to download/share.
 
-- **Framework**: React 18 + TypeScript
-- **Build Tool**: Vite
-- **Styling**: Tailwind CSS + shadcn/ui
-- **State Management**: Apollo Client (GraphQL)
-- **API Mocking**: MSW (Mock Service Worker)
-- **Validation**: Zod
-- **Testing**: Vitest + React Testing Library
-- **UI Components**: Radix UI primitives
+- **GraphQL (PostgreSQL backend via API)**  
+  Apollo Client with typed operations, optimistic mutations, and cache updates. Ready to point at a real GraphQL endpoint.
 
-## Prerequisites
+- **Look & feel parity**  
+  Tailwind + shadcn/radix primitives with centralized theme tokens (CSS variables) so styles can match an existing admin platform.
 
-- Node.js 18+ 
-- npm or yarn
+- **Role-aware UI**  
+  Admin can upload & manage; Collaborator can browse datasets, request access, and copy share links.
 
-## Installation
+---
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd modern-admin-dashboard
-```
+## 🧭 Demo Flow
 
-2. Install dependencies:
-```bash
-npm install
-```
+1) **Dashboard** → loads QuickSight (SDK if real, iframe if mock) and shows a KPI (“Total uploaded files”).  
+2) **Upload Data (Admin)** → CSV upload (≤10MB) → progress → success → creates a **Dataset** (and legacy “Thing”) via GraphQL and bumps the KPI.  
+3) **Datasets (Collab/Admin)** → lists datasets, “Get Link” produces a presigned-GET style URL, “Request Access” triggers a GraphQL mutation.  
+4) **Admin Data** → shows “Things” list; new uploads appear immediately (optimistic + cache write).
 
-3. Start the development server:
-```bash
-npm run dev
-```
+---
 
-4. Open your browser and navigate to `http://localhost:5173`
+## 🧰 Tech Stack
 
-## Available Scripts
+- **React 18 + TypeScript**, **Vite**
+- **Tailwind CSS**, **shadcn/radix** components
+- **Apollo Client** (GraphQL) + **GraphQL Codegen**
+- **MSW** (Mock Service Worker) for REST & GraphQL mocks
+- **Zod** for validation, **lucide-react** icons
+- **Vitest + RTL** tests
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint
-- `npm run test` - Run tests
-- `npm run test:ui` - Run tests with UI
-- `npm run test:coverage` - Run tests with coverage
+---
 
-## Project Structure
+## 🗂️ Project Structure
 
 ```
+
 src/
 ├── components/
-│   ├── ui/                 # shadcn/ui components
-│   ├── DashboardTab.tsx    # QuickSight dashboard
-│   ├── UploadTab.tsx       # File upload functionality
-│   ├── AdminTab.tsx        # GraphQL admin interface
-│   └── __tests__/          # Component tests
+│   ├── QuickSightEmbed.tsx
+│   ├── DashboardTab.tsx
+│   ├── UploadTab.tsx
+│   ├── AdminTab.tsx
+│   └── DatasetsTab.tsx
+├── components/ui/           # shadcn/radix primitives
 ├── graphql/
-│   ├── client.ts           # Apollo Client setup
-│   ├── schema.ts           # Mocked GraphQL schema
-│   └── queries.ts          # GraphQL queries/mutations
+│   ├── client.ts            # Apollo client (HttpLink, cache, persistence)
+│   ├── operations.ts        # gql queries/mutations (Things, Datasets, Access)
+│   └── **generated**/types.ts (via `npm run gen`)
 ├── hooks/
-│   └── use-toast.ts        # Toast notification hook
+│   └── useRole.ts           # Admin/Collaborator role switch
 ├── lib/
-│   ├── api.ts              # REST API functions
-│   ├── utils.ts            # Utility functions
-│   └── validations.ts      # Zod validation schemas
+│   ├── api.ts               # REST helpers (presign, upload)
+│   ├── utils.ts
+│   └── validations.ts       # zod schemas + QuickSight response parser
 ├── mocks/
-│   ├── browser.ts          # MSW browser setup
-│   ├── server.ts           # MSW server setup
-│   └── handlers.ts         # API mock handlers
-└── test/
-    └── setup.ts            # Test configuration
+│   ├── browser.ts           # MSW worker + `startMSW()`
+│   └── handlers.ts          # /quicksight, /s3/presign, /s3/presign-get, GraphQL
+├── types/
+│   └── amazon-quicksight-embedding-sdk.d.ts  # minimal TS shim
+└── index.css, main.tsx, App.tsx
+
+````
+
+Add’l root files:
+- `schema.mock.graphql` – tiny schema for codegen  
+- `codegen.yml` – GraphQL Codegen config  
+- `server/presign.example.ts` – Node/AWS SDK v3 **example** for real presign (not required to run demo)
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- **Node**: Vite requires **Node ≥ 20.19 or ≥ 22.12** (recommend 22 LTS)  
+  ```bash
+  nvm install 22 && nvm use 22
+
+### Install & Initialize
+
+```bash
+npm i
+npx msw init public --save   # ensures public/mockServiceWorker.js exists
+npm run gen                  # GraphQL codegen from schema.mock.graphql
 ```
 
-## API Endpoints
+### Run (choose a stable port)
 
-### REST Endpoints (Mocked with MSW)
-
-- `GET /quicksight/embed-url` - Returns QuickSight embed URL
-- `POST /s3/presign` - Returns S3 presigned URL for file upload
-
-### GraphQL Schema (Mocked)
-
-```graphql
-type Thing {
-  id: ID!
-  name: String!
-  status: ThingStatus!
-  created_at: String!
-}
-
-enum ThingStatus {
-  ACTIVE
-  INACTIVE
-  PENDING
-}
-
-type Query {
-  listThings: [Thing!]!
-}
-
-type Mutation {
-  createThing(name: String!): Thing!
-}
+```bash
+npm run dev -- --host --port 3005
+# open http://localhost:3005
 ```
 
-## Testing
+> If you see a JSON parse error on the dashboard, hard-reload with DevTools “Disable cache” and ensure the **Service Worker is activated** (DevTools → Application → Service Workers).
 
-The project includes comprehensive tests for each tab component:
+### Build & Preview
 
-- **DashboardTab**: Tests iframe loading, error handling, and refresh functionality
-- **UploadTab**: Tests file selection, upload process, and error states
-- **AdminTab**: Tests GraphQL operations, form validation, and data display
+```bash
+npm run build
+npm run preview
+```
 
-Run tests with:
+---
+
+## 🔌 API Surfaces (mocked in dev)
+
+### REST
+
+* `GET /quicksight/embed-url` → `{ url | embedUrl }` (QuickSight embed URL)
+* `POST /s3/presign` → `{ uploadUrl, fileKey, expiresAt }` (PUT)
+* `POST /s3/presign-get` → `{ downloadUrl }` (GET/share)
+
+### GraphQL (Apollo)
+
+* Queries:
+
+  * `ListDatasets` → `datasets { id name owner visibility created_at }`
+  * `ListThings` → `things { id name status created_at }`
+* Mutations:
+
+  * `CreateDataset(name)` → `Dataset`
+  * `RequestAccess(datasetId)` → `AccessRequest`
+  * `CreateThing(name)` → `Thing`
+
+Apollo updates cache optimistically on create, so lists update instantly.
+
+---
+
+## 🧪 Testing
+
+* Component tests in Vitest + React Testing Library
+* Covers loading/empty/error states, basic a11y flows
+
 ```bash
 npm test
+npm run test:ui
+npm run test:coverage
 ```
 
-## Code Quality
+---
 
-- **TypeScript**: Strict mode enabled with comprehensive type checking
-- **ESLint**: Configured with TypeScript and React rules
-- **Accessibility**: ARIA attributes and semantic HTML throughout
-- **Error Handling**: Comprehensive error states and user feedback
-- **Loading States**: Loading indicators for all async operations
+## 🎨 Theming & Look/Feel Parity
 
-## Key Features
+* Central **CSS variables** in `src/index.css` (neutral palette, primary, radii, spacing)
+* Tailwind maps those tokens in `tailwind.config.js`
+* UI primitives in `src/components/ui/*` for easy reskin to match an existing admin platform
 
-### Production-Ready Code
-- Strict TypeScript configuration
-- Comprehensive error handling
-- Loading and empty states
-- Accessibility compliance
-- Form validation with Zod
-- Toast notifications for user feedback
+---
 
-### Modern UI/UX
-- Clean, modern design with shadcn/ui
-- Responsive layout
-- Smooth animations and transitions
-- Intuitive navigation with tabs
-- Consistent design system
+## 🏭 Production Wiring (drop-in replacements)
 
-### Testing Strategy
-- Unit tests for all components
-- Mocked API calls
-- Accessibility testing
-- Error state testing
-- User interaction testing
+1. **QuickSight**
 
-## Contributing
+   * Backend route returns `{ embedUrl: "https://...quicksight....amazonaws.com/.../embed/..." }`
+   * Frontend auto-uses the SDK for real URLs, with `load`/`error` events and (optional) parameter calls
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Run the test suite
-6. Submit a pull request
+2. **S3 Presign**
 
-## License
+   * Replace MSW with your backend for `POST /s3/presign` (PUT) and `POST /s3/presign-get` (GET).
+   * See `server/presign.example.ts` (Express + AWS SDK v3) for a reference implementation.
 
-This project is licensed under the MIT License. 
+3. **GraphQL (Postgres)**
+
+   * Set `VITE_GRAPHQL_URL` and point Apollo HttpLink at your GraphQL endpoint; add auth headers.
+   * Keep optimistic updates and cache writes for snappy UX.
+
+4. **Auth & Roles**
+
+   * Replace local `useRole` with real session/claims and gate features accordingly.
+
+---
+
+## 🔐 Environment (example)
+
+Create `.env` (optional for prod hookup):
+
+```
+VITE_GRAPHQL_URL=https://api.example.com/graphql
+VITE_APP_NAME="Data Sharing Portal"
+```
+
+---
+
+## 📸 Screenshots
+
+Add images/GIFs under `docs/` and reference them here:
+
+* Dashboard (QuickSight + KPI)
+* Upload flow (progress & toast)
+* Datasets (Get Link / Request Access)
+* Admin Data (new item appears)
+
+---
+
+## 📝 Roadmap (nice-to-have)
+
+* Real auth + role claims (Cognito/Okta)
+* Dataset search/filter, pagination
+* Audit trail (who uploaded, who accessed)
+* Parameterized QuickSight dashboards per dataset/owner
+* E2E tests (Playwright) for upload/access flows
+
+---
+
+## 📄 License
+
+MIT © Maanas Varma
+
+```
+
